@@ -1,5 +1,7 @@
 /*
- *  Minimal virtual oscillator (minivosc) soundcard
+ *  ALSA Virtual Soundcard : Signal Generator Source.
+ *
+ *  Based on Minimal virtual oscillator (minivosc) soundcard.
  *
  *  Based on Loopback soundcard (aloop-kernel.c):
  *  Original code:
@@ -43,7 +45,7 @@ static int debug = 1;
 /* Here is our user defined breakpoint to */
 /* initiate communication with remote (k)gdb */
 /* don't use if not actually using kgdb */
-#define BREAKPOINT() asm("   int $3");
+//#define BREAKPOINT() asm("   int $3");
 
 
 // copy from aloop-kernel.c:
@@ -61,10 +63,10 @@ static int debug = 1;
 #include <sound/initval.h>
 #include <linux/version.h>
 
-MODULE_AUTHOR("sdaau");
-MODULE_DESCRIPTION("minivosc soundcard");
+MODULE_AUTHOR("bmarchant");
+MODULE_DESCRIPTION("virtual-siggen");
 MODULE_LICENSE("GPL");
-MODULE_SUPPORTED_DEVICE("{{ALSA,minivosc soundcard}}");
+MODULE_SUPPORTED_DEVICE("{{ALSA,virtual-siggen}}");
 
 static int index[SNDRV_CARDS] = SNDRV_DEFAULT_IDX;	/* Index 0-MAX */
 static char *id[SNDRV_CARDS] = SNDRV_DEFAULT_STR;	/* ID for this card */
@@ -202,9 +204,11 @@ static struct snd_device_ops dev_ops =
 };
 
 
-#define SND_MINIVOSC_DRIVER	"snd_minivosc"
+#define SND_DRIVER_NAME "snd_vsiggen"
 
-// * we need a struct describing the driver:
+/*
+** As this is a virtual device we use a Platform Device.
+*/
 static struct platform_driver minivosc_driver =
 {
 	.probe		= minivosc_probe,
@@ -218,7 +222,7 @@ static struct platform_driver minivosc_driver =
 	//~ .resume	= minivosc_resume,
 //~ #endif
 	.driver		= {
-		.name	= SND_MINIVOSC_DRIVER,
+		.name	= SND_DRIVER_NAME,
 		.owner = THIS_MODULE
 	},
 };
@@ -229,13 +233,8 @@ static struct platform_driver minivosc_driver =
  * Probe/remove functions
  *
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)
-static int __devinit minivosc_probe(struct platform_device *devptr)
-#else
 static int minivosc_probe(struct platform_device *devptr)
-#endif
 {
-
 	struct snd_card *card;
 	struct minivosc_device *mydev;
 	int ret;
@@ -247,15 +246,8 @@ static int minivosc_probe(struct platform_device *devptr)
 
 	dbg("%s: probe", __func__);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)
-
-	// no need to kzalloc minivosc_device separately, if the sizeof is included here
-	ret = snd_card_create(index[dev], id[dev],
-	                      THIS_MODULE, sizeof(struct minivosc_device), &card);
-#else
 	ret = snd_card_new(&devptr->dev, index[dev], id[dev], THIS_MODULE,
 		sizeof(struct minivosc_device), &card);
-#endif
 
 	if (ret < 0)
 		goto __nodev;
@@ -267,13 +259,9 @@ static int minivosc_probe(struct platform_device *devptr)
 
 	dbg2("-- mydev %p", mydev);
 
-	sprintf(card->driver, "my_driver-%s", SND_MINIVOSC_DRIVER);
-	sprintf(card->shortname, "MySoundCard Audio %s", SND_MINIVOSC_DRIVER);
-	sprintf(card->longname, "%s", card->shortname);
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)
-	snd_card_set_dev(card, &devptr->dev); // present in dummy, not in aloop though
-#endif
+	sprintf(card->driver, "VIRTUAL");
+	sprintf(card->shortname, "Signal Source");
+	sprintf(card->longname, "Virtual Signal Generator/Source");
 
 	ret = snd_device_new(card, SNDRV_DEV_LOWLEVEL, mydev, &dev_ops);
 
@@ -324,11 +312,7 @@ __nodev: // as in aloop/dummy...
 }
 
 // from dummy/aloop:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)
-static int __devexit minivosc_remove(struct platform_device *devptr)
-#else
 static int minivosc_remove(struct platform_device *devptr)
-#endif
 {
 	dbg("%s", __func__);
 	snd_card_free(platform_get_drvdata(devptr));
@@ -869,7 +853,7 @@ static int __init alsa_card_minivosc_init(void)
 		if (!enable[i])
 			continue;
 
-		device = platform_device_register_simple(SND_MINIVOSC_DRIVER,
+		device = platform_device_register_simple(SND_DRIVER_NAME,
 		         i, NULL, 0);
 
 		if (IS_ERR(device))
@@ -888,7 +872,7 @@ static int __init alsa_card_minivosc_init(void)
 	if (!cards)
 	{
 #ifdef MODULE
-		printk(KERN_ERR "minivosc-alsa: No enabled, not found or device busy\n");
+		printk(KERN_ERR "%s: Not enabled, not found or device busy\n", SND_DRIVER_NAME);
 #endif
 		minivosc_unregister_all();
 		return -ENODEV;

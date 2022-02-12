@@ -4,9 +4,9 @@ CONFIG_MODULE_FORCE_UNLOAD=y
 # "CFLAGS was changed ... Fix it to use EXTRA_CFLAGS."
 EXTRA_CFLAGS=-Wall -Wmissing-prototypes -Wstrict-prototypes -g -O2
 
-obj-m += snd-minivosc.o
+obj-m += snd-vsiggen.o
 
-snd-minivosc-objs  := minivosc.o
+snd-vsiggen-objs  := vsiggen.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
