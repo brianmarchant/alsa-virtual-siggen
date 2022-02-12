@@ -1,5 +1,6 @@
-Minimal virtual oscillator (minivosc) soundcard
+Virtual soundcard signal generator.
+
+Based on the 'minivosc' project here:
 http://www.alsa-project.org/main/index.php/Minivosc
 
-
-Fix build error in Linux Kernel v3.8 or later.
+This is an extension of the above that can provide sine-wave sources at various sample-rates and in various formats.

@@ -1,0 +1,9 @@
+# Specify filepatterns you want git to ignore.
+*.cmd
+*.o
+*.mod
+*.mod.c
+*.symvers
+*.order
+
+*.ko

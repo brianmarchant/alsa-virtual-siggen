@@ -176,7 +176,7 @@ static int minivosc_pcm_free(struct minivosc_device *chip);
 static void minivosc_timer_start(struct minivosc_device *mydev);
 static void minivosc_timer_stop(struct minivosc_device *mydev);
 static void minivosc_pos_update(struct minivosc_device *mydev);
-static void minivosc_timer_function(unsigned long data);
+static void minivosc_timer_function(struct timer_list *t);
 static void minivosc_xfer_buf(struct minivosc_device *mydev, unsigned int count);
 static void minivosc_fill_capture_buf(struct minivosc_device *mydev, unsigned int bytes);
 
@@ -247,10 +247,15 @@ static int minivosc_probe(struct platform_device *devptr)
 
 	dbg("%s: probe", __func__);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)
 
 	// no need to kzalloc minivosc_device separately, if the sizeof is included here
 	ret = snd_card_create(index[dev], id[dev],
 	                      THIS_MODULE, sizeof(struct minivosc_device), &card);
+#else
+	ret = snd_card_new(&devptr->dev, index[dev], id[dev], THIS_MODULE,
+		sizeof(struct minivosc_device), &card);
+#endif
 
 	if (ret < 0)
 		goto __nodev;
@@ -266,9 +271,9 @@ static int minivosc_probe(struct platform_device *devptr)
 	sprintf(card->shortname, "MySoundCard Audio %s", SND_MINIVOSC_DRIVER);
 	sprintf(card->longname, "%s", card->shortname);
 
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)
 	snd_card_set_dev(card, &devptr->dev); // present in dummy, not in aloop though
-
+#endif
 
 	ret = snd_device_new(card, SNDRV_DEV_LOWLEVEL, mydev, &dev_ops);
 
@@ -298,13 +303,10 @@ static int minivosc_probe(struct platform_device *devptr)
 	and we first have a chance to set it ... in _open!
 	*/
 
-	ret = snd_pcm_lib_preallocate_pages_for_all(pcm,
+	snd_pcm_lib_preallocate_pages_for_all(pcm,
 	        SNDRV_DMA_TYPE_CONTINUOUS,
 	        snd_dma_continuous_data(GFP_KERNEL),
 	        MAX_BUFFER, MAX_BUFFER); // in both aloop-kernel.c and dummy.c, after snd_pcm_set_ops...
-
-	if (ret < 0)
-		goto __nodev;
 
 	// * will use the snd_card_register form from aloop-kernel.c/dummy.c here..
 	ret = snd_card_register(card);
@@ -378,8 +380,7 @@ static int minivosc_pcm_open(struct snd_pcm_substream *ss)
 	mydev->wvf_lift = 0; 	//init
 
 	// SETUP THE TIMER HERE:
-	setup_timer(&mydev->timer, minivosc_timer_function,
-	            (unsigned long)mydev);
+	timer_setup(&mydev->timer, minivosc_timer_function, 0);
 
 	mutex_unlock(&mydev->cable_lock);
 	return 0;
@@ -573,9 +574,9 @@ static void minivosc_pos_update(struct minivosc_device *mydev)
 	}
 }
 
-static void minivosc_timer_function(unsigned long data)
+static void minivosc_timer_function(struct timer_list *t)
 {
-	struct minivosc_device *mydev = (struct minivosc_device *)data;
+	struct minivosc_device *mydev = (struct minivosc_device *) from_timer(mydev, t, timer);
 
 	if (!mydev->running)
 		return;
