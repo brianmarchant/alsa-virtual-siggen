@@ -38,6 +38,8 @@
  *
  */
 
+#define VSS_VERSION_STR "1.0"
+
 static int debug = 1;
 /* Use our own dbg macro http://www.n1ywb.com/projects/darts/darts-usb/darts-usb.c*/
 #undef dbg
@@ -63,7 +65,9 @@ static int debug = 1;
 #include <sound/core.h>
 #include <sound/control.h>
 #include <sound/pcm.h>
+#include <sound/info.h>
 #include <sound/initval.h>
+#include <sound/hwdep.h>
 #include <linux/version.h>
 
 MODULE_AUTHOR("bmarchant");
@@ -289,6 +293,45 @@ static struct platform_driver vss_driver =
 
 
 /*
+ * Open the device.
+ */
+static int vss_hwdep_open(struct snd_hwdep *hw, struct file *file)
+{
+	snd_printk(KERN_INFO "%s: open\n", __func__);	
+	
+	return 0;
+}
+
+/*
+ * Close the device,
+ */
+static int vss_hwdep_release(struct snd_hwdep * hw, struct file *file)
+{
+	snd_printk(KERN_INFO "%s: release\n", __func__);	
+	
+	return 0;
+}
+
+/*
+ * Read from the device.
+ */
+static long vss_hwdep_read(struct snd_hwdep *hw, char __user *buf,
+		     long count, loff_t *offset)
+{
+	snd_printk(KERN_INFO "%s: read(count=%ld)\n", __func__, count);	
+
+	return 0;
+}
+
+/*
+ * Proc entry.
+ */
+static void vss_info_read(struct snd_info_entry *entry, struct snd_info_buffer *buffer)
+{
+	snd_iprintf(buffer, "VIRTUAL vss version %s\n", VSS_VERSION_STR);
+}
+
+/*
  *
  * Probe/remove functions
  *
@@ -296,6 +339,7 @@ static struct platform_driver vss_driver =
 static int vss_probe(struct platform_device *devptr)
 {
 	struct snd_card *card;
+	struct snd_hwdep *hw;
 	struct vss_device *mydev;
 	int ret;
 
@@ -314,6 +358,25 @@ static int vss_probe(struct platform_device *devptr)
 
 	mydev = card->private_data;
 	mydev->card = card;
+
+	/*
+	** Set up user-space access to the driver for setting signal-source parameters etc.
+	*/
+	ret = snd_hwdep_new(mydev->card, "VSS-HWDEP", devptr->id, &hw);
+	if (ret < 0)
+		return ret;
+
+	sprintf(hw->name, "VIRTUAL vss version %s", VSS_VERSION_STR);
+	hw->ops.open = vss_hwdep_open;
+  	hw->ops.read = vss_hwdep_read;
+  	hw->ops.release = vss_hwdep_release;
+
+  	/*
+  	** Create a proc entry.
+  	*/
+  	snd_card_ro_proc_new(mydev->card, SND_DRIVER_NAME, NULL, vss_info_read);
+	snd_printk(KERN_INFO "proc entry created\n");
+
 	// MUST have mutex_init here - else crash on mutex_lock!!
 	mutex_init(&mydev->cable_lock);
 

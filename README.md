@@ -67,6 +67,14 @@ snd_pcm               102400  8 snd_hda_intel,snd_oxygen_lib,snd_ice1712,snd_vss
 
 ```
 
+`cat /proc/asound/card3/snd_vss` :
+
+*VIRTUAL vss version 1.0*
+
+`cat /proc/asound/hwdep` :
+
+*03-00: VIRTUAL vss version 1.0*
+
 `cat /proc/asound/card3/pcm0c/sub0/status` :
 
 *closed*
