@@ -19,7 +19,7 @@ Optionally copy it somewhere sensible, *for example only*:<br/>
 *To load the module*
 
 `sudo insmod ./snd-vss.ko`
- 
+
 *To try and reload the module during development*
 
 ```
@@ -110,4 +110,28 @@ card 1: M2496 [M Audio Audiophile 24/96], device 0: ICE1712 multi [ICE1712 multi
 card 3: Source [Signal Source], device 0: VIRTUAL [Signal Source]
   Subdevices: 1/1
   Subdevice #0: subdevice #0
+```
+
+### Troubleshooting
+
+If you see something like this:
+```
+insmod: ERROR: could not insert module ./snd-vss.ko: Unknown symbol in module
+```
+
+First check which symbols are missing by doing `dmesg | tail`.  You might discover something like `[ 2529.380716] snd_vss: Unknown symbol snd_pcm_new (err -2)`.
+You can then check which symbols the kernel *does* know about using `cat /proc/kallsyms | grep snd_`.
+
+If the kernel does not include (EXPORT) the `snd_xxx_xxx` symbols, try loading the required modules first, for example:
+```
+sudo modprobe snd_pcm
+sudo modprobe snd_hwdep
+```
+*Loaded* modules can be checked with `lsmod | grep snd`.
+
+If that doesn't work, try installing the ALSA components themselves and trying again:
+```
+sudo apt update
+sudo apt install alsa-base
+sudo apt install alsa-tools
 ```

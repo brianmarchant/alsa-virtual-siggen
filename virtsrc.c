@@ -19,7 +19,7 @@
  *  minivosc specific parts:
  *  Copyright (c) by Smilen Dimitrov <sd at imi.aau.dk>
  *
- *  alsa-vsss specific parts:
+ *  alsa-vss specific parts:
  *  Copyright (c) by Brian Marchant <brian at brianmarchant.com>
  *
  *   This program is free software; you can redistribute it and/or modify
@@ -69,11 +69,6 @@ static int debug = 1;
 #include <sound/initval.h>
 #include <sound/hwdep.h>
 #include <linux/version.h>
-
-MODULE_AUTHOR("bmarchant");
-MODULE_DESCRIPTION("virtual-source");
-MODULE_LICENSE("GPL");
-MODULE_SUPPORTED_DEVICE("{{ALSA,virtual-source}}");
 
 static int index[SNDRV_CARDS] = SNDRV_DEFAULT_IDX;	/* Index 0-MAX */
 static char *id[SNDRV_CARDS] = SNDRV_DEFAULT_STR;	/* ID for this card */
@@ -297,8 +292,8 @@ static struct platform_driver vss_driver =
  */
 static int vss_hwdep_open(struct snd_hwdep *hw, struct file *file)
 {
-	snd_printk(KERN_INFO "%s: open\n", __func__);	
-	
+	snd_printk(KERN_INFO "%s: open\n", __func__);
+
 	return 0;
 }
 
@@ -307,8 +302,8 @@ static int vss_hwdep_open(struct snd_hwdep *hw, struct file *file)
  */
 static int vss_hwdep_release(struct snd_hwdep * hw, struct file *file)
 {
-	snd_printk(KERN_INFO "%s: release\n", __func__);	
-	
+	snd_printk(KERN_INFO "%s: release\n", __func__);
+
 	return 0;
 }
 
@@ -318,7 +313,7 @@ static int vss_hwdep_release(struct snd_hwdep * hw, struct file *file)
 static long vss_hwdep_read(struct snd_hwdep *hw, char __user *buf,
 		     long count, loff_t *offset)
 {
-	snd_printk(KERN_INFO "%s: read(count=%ld)\n", __func__, count);	
+	snd_printk(KERN_INFO "%s: read(count=%ld)\n", __func__, count);
 
 	return 0;
 }
@@ -884,3 +879,8 @@ static void __exit alsa_card_vss_exit(void)
 
 module_init(alsa_card_vss_init)
 module_exit(alsa_card_vss_exit)
+
+MODULE_AUTHOR("bmarchant");
+MODULE_DESCRIPTION("virtual-source");
+MODULE_LICENSE("GPL");
+MODULE_SUPPORTED_DEVICE("{{ALSA,virtual-source}}");
